@@ -18,7 +18,7 @@
 #include <time.h>
 #include <unistd.h>
 
-void accept_request(int, struct sockaddr_in *);
+void accept_request(int, struct sockaddr_in *, const char *);
 void bad_request(int);
 void cat(int, FILE *);
 void cannot_execute(int);

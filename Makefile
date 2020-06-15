@@ -1,19 +1,18 @@
 CXX = gcc -std=gnu99
 INCLUDE = include
-BIN = bin
 BUILD = build
 SRC = src
-CXXFLAGS = -I$(INCLUDE) -L$(BIN)
+CXXFLAGS = -I$(INCLUDE)
 
 dir_guard=@mkdir -p $(@D)
 
-$(BIN)/oabnew: $(BUILD)/oabnew.o $(BUILD)/httpd.o $(BUILD)/slog.o
+oabnew: $(BUILD)/oabnew.o $(BUILD)/httpd.o $(BUILD)/slog.o
 	$(dir_guard)
-	$(CXX) -o $@ $(BUILD)/*.o
+	$(CXX) -o $@ $(BUILD)/*.o -Llib -liniparser
 
-$(BUILD)/oabnew.o: oabnew.c
+$(BUILD)/oabnew.o: $(SRC)/oabnew.c
 	$(dir_guard)
-	$(CXX) $(CXXFLAGS) -c -o $@ oabnew.c
+	$(CXX) $(CXXFLAGS) -c -o $@ $(SRC)/oabnew.c
 
 $(BUILD)/httpd.o: $(SRC)/httpd.c
 	$(dir_guard)
@@ -24,6 +23,6 @@ $(BUILD)/slog.o: $(SRC)/slog.c
 	$(CXX) $(CXXFLAGS) -c -o $@ $(SRC)/slog.c
 
 all:
-	$(BIN)/oabnew
+	oabnew
 clean:
-	rm -rf $(BUILD)/* $(BIN)/oabnew
+	rm -rf $(BUILD)/* oabnew

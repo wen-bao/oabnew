@@ -17,8 +17,7 @@
 
 #define ISspace(x) isspace((int)(x))
 
-#define SERVER_STRING "Server: wenbao-httpd/1.0\r\n"
-#define ROOT_DIR "www"
+#define SERVER_STRING "Server: OABNEW-httpd/1.0\r\n"
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
@@ -28,7 +27,7 @@
  * return.  Process the request appropriately.
  * Parameters: the socket connected to the client */
 /**********************************************************************/
-void accept_request(int client, struct sockaddr_in *client_addr) {
+void accept_request(int client, struct sockaddr_in *client_addr, const char *root) {
   char buf[1024];
   char time_buf[50];
   char *log_buf[5];
@@ -94,7 +93,7 @@ void accept_request(int client, struct sockaddr_in *client_addr) {
   }
 
   // 根据 url 拼接资源路径，比如请求 /test.html，拼接后的路径为 htdocs/test.html
-  sprintf(path, "%s%s", ROOT_DIR, url);
+  sprintf(path, "%s%s", root, url);
   if (path[strlen(path) - 1] == '/') strcat(path, "index.html");
   // 读取资源
   if (stat(path, &st) == -1) {

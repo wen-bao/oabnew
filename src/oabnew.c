@@ -16,12 +16,13 @@
 #include <unistd.h>
 
 #include "httpd.h"
+#include "iniparser.h"
 #include "slog.h"
 
 #define DEFAULT_PORT 8080
 #define MAX_EVENT_NUM 1024
 #define INFTIM -1
-#define LOG_LEVEL S_INFO
+#define LOG_LEVEL S_DEBUG
 
 void process(int);
 
@@ -77,18 +78,40 @@ void oabnew_opt(int argc, char **argv) {
   }
 }
 
-int main(int argc, char *argv[]) {
-  oabnew_opt(argc, argv);
+#define PATHLEN 80
 
+typedef struct wb_conf {
+  const char *root;
+  int port;
+} wb_conf_t;
+
+static wb_conf_t conf[1] = {{0}};
+int main(int argc, char *argv[]) {
   if (init_logger("./logs", LOG_LEVEL) != TRUE) {
     SLOG_ERROR("Init logger failed:%s\n", strerror(errno));
     exit(1);
   }
 
+  dictionary *ini;
   int port = DEFAULT_PORT;
-  if (argc == 3 && isdigit(*argv[2])) {
-    port = atoi(argv[2]);
+  char *str = "www";
+
+  ini = iniparser_load("oabnew.ini");  // parser the file
+  if (ini == NULL) {
+    SLOG_ERROR("can not open %s err:%s\n", "oabnew.ini", strerror(errno));
+    exit(EXIT_FAILURE);
   }
+
+  SLOG_DEBUG("secname:%s\n", iniparser_getsecname(ini, 0));  // get section name
+  port = iniparser_getint(ini, "oabnew:port", -1);
+  SLOG_DEBUG("port:%d\n", port);
+  conf->port = port;
+
+  str = iniparser_getstring(ini, "oabnew:root", "null");
+  conf->root = str;
+  SLOG_DEBUG("root:%s\n", conf->root);
+
+  oabnew_opt(argc, argv);
 
   if (s_oabnew_param->start) {
     SLOG_INFO("solve start ...\n");
@@ -99,8 +122,9 @@ int main(int argc, char *argv[]) {
     SLOG_INFO("solve restart");
   } else {
     oabnew_help();
-    exit(1);
   }
+end:
+  iniparser_freedict(ini);  // free dirctionary obj
   return 0;
 }
 
@@ -110,19 +134,17 @@ void oabnew_help() {
   printf("usage: oabnew -hco:r  [port]\n");
   printf("\t-h,--help          help\n");
   // printf("\t-p,--path          operate file path\n");
-  printf("\t-a,--start         start op. if not specify, decrypt op.\n");
-  printf(
-      "\t-o,--stop          result output path. if not specify, output to "
-      "stdout!\n");
-  printf("\t-r,--restart       result output operate path self\n");
+  printf("\t-a,--start         start OABNEW WEB SERVER\n");
+  printf("\t-o,--stop          stop OABNEW WEB SERVER\n");
+  printf("\t-r,--restart       restart OABNEW WEB SERVER\n");
 
   printf("\nsample:\n");
-  printf("    oabnew -a 8080\n");
-  printf("    oabnew -c 8080\n");
-  printf("    oabnew -r 8080\n");
+  printf("    oabnew -a\n");
+  printf("    oabnew -c\n");
+  printf("    oabnew -r\n");
 }
 
-void run(int port) {
+void run() {
   struct sockaddr_in server_addr;
   int listen_fd;
   int cpu_core_num;
@@ -136,20 +158,22 @@ void run(int port) {
   bzero(&server_addr, sizeof(server_addr));
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-  server_addr.sin_port = htons(port);
+  server_addr.sin_port = htons(conf->port);
 
   if (bind(listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) ==
       -1) {
-    SLOG_ERROR("Bind port:%d error, message: %s\n", port, strerror(errno));
+    SLOG_ERROR("Bind port:%d error, message: %s\n", conf->port,
+               strerror(errno));
     exit(1);
   }
 
   if (listen(listen_fd, 5) == -1) {
-    SLOG_ERROR("Listen port:%d error, message: %s\n", port, strerror(errno));
+    SLOG_ERROR("Listen port:%d error, message: %s\n", conf->port,
+               strerror(errno));
     exit(1);
   }
 
-  SLOG_INFO("Listening port:%d\n", port);
+  SLOG_INFO("Listening port:%d\n", conf->port);
 
   signal(SIGCHLD, handle_subprocess_exit);
 
@@ -230,7 +254,7 @@ void process(int listen_fd) {
                   inet_ntoa(client_addr.sin_addr), client_addr.sin_port);
         conn_fd = events[i].data.fd;
         // 调用 TinyHttpd 的 accept_request 函数处理请求
-        accept_request(conn_fd, &client_addr);
+        accept_request(conn_fd, &client_addr, conf->root);
         close(conn_fd);
       } else if (events[i].events & EPOLLERR) {
         SLOG_ERROR("Epoll error:%s\n", strerror(errno));
