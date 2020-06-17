@@ -12,15 +12,15 @@ oabnew: $(BUILD)/oabnew.o $(BUILD)/httpd.o $(BUILD)/slog.o
 
 $(BUILD)/oabnew.o: $(SRC)/oabnew.c
 	$(dir_guard)
-	$(CXX) $(CXXFLAGS) -c -o $@ $(SRC)/oabnew.c
+	$(CXX) -g $(CXXFLAGS) -c -o $@ $(SRC)/oabnew.c
 
 $(BUILD)/httpd.o: $(SRC)/httpd.c
 	$(dir_guard)
-	$(CXX) $(CXXFLAGS) -c -o $@ $(SRC)/httpd.c
+	$(CXX) -g $(CXXFLAGS) -c -o $@ $(SRC)/httpd.c
 
 $(BUILD)/slog.o: $(SRC)/slog.c
 	$(dir_guard)
-	$(CXX) $(CXXFLAGS) -c -o $@ $(SRC)/slog.c
+	$(CXX) -g $(CXXFLAGS) -c -o $@ $(SRC)/slog.c
 
 all:
 	oabnew
