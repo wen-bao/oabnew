@@ -30,7 +30,10 @@ Makefile
 *.smod
 
 # Executables
-oabnew
+bin/oabnew
+bin/oabnew.ini
+bin/www
+bin/logs
 *.exe
 *.out
 *.app
